@@ -21,32 +21,27 @@ top_line = None
 body = None
 bottom_line = None
 
-def submission_to_string_rest(submission, limit):
+def submission_to_string(submission, limit):
+    left = "↑ {} ".format(submission.score).ljust(7, ' ')
     right = " ({}) [/r/{}]".format(submission.domain,
                                    submission.subreddit.display_name)
     rawTitle = submission.title
     rawTitle = rawTitle.replace("&amp;", "&")
     rawTitle = rawTitle.replace("&lt;", "<")
     rawTitle = rawTitle.replace("&gt;", ">")
-    titlelen = min(len(rawTitle), limit - 7 - len(right) - 3)
+    titlelen = min(len(rawTitle), limit - len(left) - len(right) - 3)
     title = rawTitle[0:titlelen]
     if len(title) < len(rawTitle):
         title += "..."
-    return title + right
-
-def submission_to_string_left(submission):
-    left = "↑ {} ".format(submission.score)
-    return left
+    return left + title + right
 
 def draw_submissions(posts):
     global body
     (lines, cols) = body.getmaxyx()
     pos = 0
     for entry in posts:
-        post_str_left = submission_to_string_left(entry)
-        post_str_rest = submission_to_string_rest(entry, cols - 1)
-        body.addstr(pos, 0, post_str_left)
-        body.addstr(pos, 7, post_str_rest)
+        post_str = submission_to_string(entry, cols - 1)
+        body.addstr(pos, 0, post_str)
         pos += 1
     body.refresh()
 
