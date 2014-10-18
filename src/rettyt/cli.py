@@ -14,6 +14,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Rettyt.  If not, see <http://www.gnu.org/licenses/>.
 import curses
+import curses.textpad
 import praw
 import webbrowser
 
@@ -135,6 +136,18 @@ def curses_main(stdscr):
             body.clear()
             draw_submissions(frontpage)
             paint_line(body, current_entry)
+        elif key == ord('g'):
+            bottom_line.clear()
+            prompt = "Go to (blank for frontpage) /r/"
+            bottom_line.addstr(prompt)
+            editor = curses.newwin(1, cols - len(prompt), lines - 1, len(prompt))
+            editor.bkgd(ord(' '), curses.color_pair(1))
+            bottom_line.refresh()
+            tb = curses.textpad.Textbox(editor)
+            sub = tb.edit()
+            bottom_line.clear()
+            bottom_line.addstr(sub if (len(sub) > 0) else "Front page ({})".format(page_num))
+            bottom_line.refresh()
         body.refresh()
 
 def main():
