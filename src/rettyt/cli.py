@@ -14,6 +14,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Rettyt.  If not, see <http://www.gnu.org/licenses/>.
 import curses
+import praw
 
 def curses_main(stdscr):
     curses.init_pair(1, curses.COLOR_WHITE, curses.COLOR_BLUE)
@@ -28,22 +29,37 @@ def curses_main(stdscr):
     top_line.bkgd(ord(' '), curses.color_pair(1))
     bottom_line.bkgd(ord(' '), curses.color_pair(1))
     top_line.addstr(0, 0, "Press q to quit")
-    bottom_line.addstr(0, 0, "Test output for modeline")
-    remainder.addstr(2, 2, "Hello, world")
+    bottom_line.addstr(0, 0, "Front page")
 
-    remainder.refresh()
     top_line.refresh()
     bottom_line.refresh()
 
-    pos = 3
+    r = praw.Reddit(user_agent="rettyt 0.0.1 (HackTX 2014)")
+    frontpage = r.get_front_page(limit=int((lines - 2) / 2))
+    pos = 0
+    for entry in frontpage:
+        hpos = 0
+        remainder.addch(pos, hpos, curses.ACS_UARROW)
+        hpos += 2
+        ups = str(entry.ups)
+        remainder.addstr(pos, hpos, ups)
+        hpos += len(ups) + 1
+        downs = str(entry.downs)
+        remainder.addch(pos, hpos, curses.ACS_DARROW)
+        hpos += 2
+        remainder.addstr(pos, hpos, downs)
+        hpos += len(downs) + 1
+        remainder.addstr(pos, hpos, entry.title)
+
+        remainder.addstr(pos + 1, 0, entry.url)
+        pos += 2
+
+    remainder.refresh()
     while True:
         key = stdscr.getkey()
         if key == "q" or key == "Q" or key == "^C":
             return
-        else:
-            remainder.addstr(pos, 0, "Pressed key: " + key)
-            pos += 1
-            remainder.refresh()
+        remainder.refresh()
 
 def main():
     curses.wrapper(curses_main)
