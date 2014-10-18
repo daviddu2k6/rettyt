@@ -1,4 +1,4 @@
-# Copyright (C) 2014 Krzysztof Drewniak et. al.
+# Copyright (C) 2014 Krzysztof Drewniak, David Du, and Tom Lu et. al.
 # This file is part of Rettyt.
 
 # Rettyt is free software: you can redistribute it and/or modify
