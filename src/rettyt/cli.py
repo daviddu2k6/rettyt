@@ -54,6 +54,19 @@ def unpaint_line(window, line):
     window.chgat(line, 0, 0)
     window.refresh()
 
+def get_input(prompt):
+    global bottom_line
+    cols = curses.COLS
+    lines = curses.LINES
+    bottom_line.clear()
+    bottom_line.addstr(prompt)
+    editor = curses.newwin(1, cols - len(prompt), lines - 1, len(prompt))
+    editor.bkgd(ord(' '), curses.color_pair(1))
+    bottom_line.refresh()
+    tb = curses.textpad.Textbox(editor)
+    ret = tb.edit()
+    return ret
+
 def grab_screenful(reddit, lines, subreddit=None):
     r = reddit
     ret = []
@@ -127,14 +140,7 @@ def curses_main(stdscr):
             draw_submissions(frontpage)
             paint_line(body, current_entry)
         elif key == ord('g'):
-            bottom_line.clear()
-            prompt = "Go to (blank for frontpage) /r/"
-            bottom_line.addstr(prompt)
-            editor = curses.newwin(1, cols - len(prompt), lines - 1, len(prompt))
-            editor.bkgd(ord(' '), curses.color_pair(1))
-            bottom_line.refresh()
-            tb = curses.textpad.Textbox(editor)
-            sub = tb.edit()
+            sub = get_input("Go to (blank for frontpage) /r/")
             bottom_line.clear()
             bottom_line.addstr(sub if (len(sub) > 0) else "Front page ({})".format(page_num))
             bottom_line.refresh()
