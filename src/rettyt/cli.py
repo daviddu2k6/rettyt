@@ -54,30 +54,20 @@ def unpaint_line(window, line):
     window.chgat(line, 0, 0)
     window.refresh()
 
-# def grab_screenful(submissions, limit):
-#     ret = []
-#     for post in submissions:
-#         ret.append(post)
-#         if len(ret) >= limit:
-#             yield ret
-#             ret = []
-#     yield ret
-#     return
-
 def grab_screenful(reddit, lines, subreddit=None):
-    r = reddit 
+    r = reddit
     ret = []
     if not subreddit:
         submissions = r.get_front_page(limit=None)
     else:
-        submissions = r.get_subreddit().get_hot(limit=None)
+        submissions = r.get_subreddit(subreddit).get_hot(limit=None)
     for post in submissions:
         ret.append(post)
         if len(ret) >= lines:
             yield ret
             ret = []
     yield ret
-    return 
+    return
 
 def curses_main(stdscr):
     global top_line, bottom_line, body
