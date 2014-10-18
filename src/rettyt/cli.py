@@ -1,4 +1,4 @@
-# Copyright (C) 2014 Krzysztof Drewniak, David Du, and Tom Lu et. al.
+# Copyright (C) 2014 Krzysztof Drewniak, David Du, and Tom Lu
 # This file is part of Rettyt.
 
 # Rettyt is free software: you can redistribute it and/or modify
@@ -18,7 +18,7 @@ import praw
 import webbrowser
 
 def draw_submissions(win, posts):
-    cols = curses.COLS
+    (lines, cols) = win.getmaxyx()
     pos = 0
     for entry in posts:
         hpos = 0
@@ -27,9 +27,7 @@ def draw_submissions(win, posts):
         ups = str(entry.ups)
         win.addstr(pos, hpos, ups)
         hpos += len(ups) + 1
-
-        win.addnstr(pos, hpos, entry.title, cols - hpos)
-
+        win.addnstr(pos, hpos, entry.title, cols - hpos - 1)
         pos += 1
     win.refresh()
 
@@ -40,6 +38,16 @@ def paint_line(window, line):
 def unpaint_line(window, line):
     window.chgat(line, 0, 0)
     window.refresh()
+
+def grab_screenful(submissions, limit):
+    ret = []
+    for post in submissions:
+        ret.append(post)
+        if len(ret) >= limit:
+            yield ret
+            ret = []
+    yield ret
+    return
 
 def curses_main(stdscr):
     curses.init_pair(1, curses.COLOR_WHITE, curses.COLOR_BLUE)
@@ -55,13 +63,15 @@ def curses_main(stdscr):
     top_line.bkgd(ord(' '), curses.color_pair(1))
     bottom_line.bkgd(ord(' '), curses.color_pair(1))
     top_line.addstr(0, 0, "Enter: Open URL  j: Down  k: Up  q: Quit")
-    bottom_line.addstr(0, 0, "Front page")
+    bottom_line.addstr(0, 0, "Front page (1)")
 
     top_line.refresh()
     bottom_line.refresh()
 
     r = praw.Reddit(user_agent="rettyt 0.0.1 (HackTX 2014)")
-    frontpage = list(r.get_front_page(limit=lines - 2))
+    frontpages = grab_screenful(r.get_front_page(limit=None), lines - 2)
+    frontpage = next(frontpages)
+    page_num = 1
     current_entry = 0
     draw_submissions(remainder, frontpage)
     paint_line(remainder, 0)
@@ -75,10 +85,20 @@ def curses_main(stdscr):
                 current_entry -= 1
                 paint_line(remainder, current_entry)
         elif key == curses.KEY_DOWN or key == ord('j'):
-            if current_entry < len(frontpage):
+            if current_entry < len(frontpage) - 1:
                 unpaint_line(remainder, current_entry)
                 current_entry += 1
                 paint_line(remainder, current_entry)
+        elif key == ord(' ') and len(frontpage) != 0:
+            frontpage = next(frontpages)
+            page_num += 1
+            current_entry = 0
+            remainder.clear()
+            draw_submissions(remainder, frontpage)
+            paint_line(remainder, 0)
+            bottom_line.clear()
+            bottom_line.addstr("Front page ({})".format(page_num))
+            bottom_line.refresh()
         elif key == ord('\n'):
             webbrowser.open_new_tab(frontpage[current_entry].url)
         elif key == ord('r'):
