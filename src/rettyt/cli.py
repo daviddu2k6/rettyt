@@ -39,17 +39,13 @@ def curses_main(stdscr):
     pos = 0
     for entry in frontpage:
         hpos = 0
-        remainder.addch(pos, hpos, curses.ACS_UARROW)
+        remainder.addstr(pos, hpos, "↑ ")
         hpos += 2
         ups = str(entry.ups)
         remainder.addstr(pos, hpos, ups)
         hpos += len(ups) + 1
-        downs = str(entry.downs)
-        remainder.addch(pos, hpos, curses.ACS_DARROW)
-        hpos += 2
-        remainder.addstr(pos, hpos, downs)
-        hpos += len(downs) + 1
-        remainder.addstr(pos, hpos, entry.title)
+
+        remainder.addnstr(pos, hpos, entry.title, cols - hpos)
 
         remainder.addstr(pos + 1, 0, entry.url)
         pos += 2
