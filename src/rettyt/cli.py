@@ -32,6 +32,7 @@ pages = None
 page = []
 error = False
 CTRL_R = 18
+page_cache = []
 
 def clear_error():
     global error
@@ -79,12 +80,12 @@ def submission_to_string(submission, limit):
     title = rawTitle[0:titlelen]
     if len(title) < len(rawTitle):
         title += "..."
-    return left, title, right
+    return left + title + right
 
 def draw_submission(post, pos):
     global body
     (lines, cols) = body.getmaxyx()
-    post_str = ''.join(submission_to_string(post, cols - 1))
+    post_str = submission_to_string(post, cols - 1)
     body.addstr(pos, 0, post_str)
     if post.likes is True:
         body.chgat(pos, 0, 1, curses.A_BOLD)
@@ -140,17 +141,10 @@ def grab_screenful(lines, subreddit='Front page'):
 
 def handle_key_posts_mode(stdscr, key):
     global top_line, bottom_line, body, r, sub, page_num, current_entry, page, pages
-    if key == (curses.KEY_UP) or key == ord('k'):
-        if current_entry > 0:
-            unpaint_line(body, current_entry)
-            current_entry -= 1
-            paint_line(body, current_entry)
-    elif key == curses.KEY_DOWN or key == ord('j'):
-        if current_entry < len(page) - 1:
-            unpaint_line(body, current_entry)
-            current_entry += 1
-            paint_line(body, current_entry)
-    elif key == ord(' ') and len(page) != 0:
+
+    def next_page():
+        global page, page_num, current_entry, body, page_cache
+        page_cache.append(page)
         page = next(pages)
         page_num += 1
         current_entry = 0
@@ -158,11 +152,43 @@ def handle_key_posts_mode(stdscr, key):
         draw_submissions(page)
         paint_line(body, 0)
         draw_modeline()
+
+    def prev_page():
+        global page, page_num, current_entry, body, page_cache
+        if len(page_cache) > 0:
+            page = page_cache.pop() 
+            page_num -= 1
+            current_entry = curses.LINES - 3
+            body.clear()
+            draw_submissions(page)
+            paint_line(body, curses.LINES - 3)
+            draw_modeline()
+
+    if key == (curses.KEY_UP) or key == ord('k'):
+        if current_entry > 0:
+            unpaint_line(body, current_entry)
+            current_entry -= 1
+            paint_line(body, current_entry)
+        elif current_entry <= 0:
+            prev_page()
+    elif key == curses.KEY_DOWN or key == ord('j'):
+        if current_entry < len(page) - 1:
+            unpaint_line(body, current_entry)
+            current_entry += 1
+            paint_line(body, current_entry)
+        elif current_entry >= len(page)-1:
+            next_page()
+    elif key == ord('B'):
+        if page_num > 1:
+            prev_page()
+    elif key == ord(' ') and len(page) != 0:
+        next_page()
     elif key == ord('\n'):
         webbrowser.open_new_tab(page[current_entry].url)
     elif key == ord('c'):
         comments_main(stdscr)
     elif key == ord('r'):
+        page_cache = []
         load_subreddit()
     elif key == CTRL_R:
         draw_modeline()
