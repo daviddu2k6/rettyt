@@ -265,11 +265,21 @@ def isMoreComments(node):
     return node is not None and isinstance(node.value, praw.objects.MoreComments)
 
 def isComment(node):
-    return node is not None and isinstance(node.value, praw.objects.Comment)
+    return node is not None and (isinstance(node.value, praw.objects.Comment) or isinstance(node.value, SelfPost))
+
+class SelfPost(object):
+    children = []
+    body = ""
+    replies = []
+    def __init__(self, text):
+        self.body = text
 
 def comments_main(stdscr):
     post = page[current_entry]
     raw_comments = post.comments
+    if post.is_self:
+        raw_comments = [SelfPost(post.selftext)] + raw_comments
+
     if (len(raw_comments) == 0):
         return
 
@@ -282,11 +292,13 @@ def comments_main(stdscr):
     node_stack = []
     comment_lines = []
     current_node = None
+    prev_nodes = []
     comment_start = 0
     comment_win = None
 
     def set_current(node):
-        nonlocal comment_lines, current_node, comment_start, comment_win
+        nonlocal comment_lines, current_node, comment_start, comment_win, prev_nodes
+        prev_nodes.append(current_node)
         current_node = node
         comment_lines = textwrap.wrap(node.value.body, width=cols)
         comment_start = 0
@@ -364,6 +376,21 @@ def comments_main(stdscr):
         elif key == ord('b'):
             if comment_start - lines >= 0:
                 comment_start -= lines
+        elif key == ord('p'):
+            if prev_nodes:
+                set_current(prev_nodes.pop())
+        elif key == ord('N'):
+            if isMoreComments(current_node.sibling):
+                current_node.setSibling(prompt_load_more(current_node.sibling.value, current_node.parent))
+            if isComment(current_node.sibling):
+                set_current(current_node.sibling)
+        elif key == ord('P'):
+            if isComment(current_node.lsibling):
+                set_current(current_node.lsibling)
+        elif key == ord('u'):
+            if isComment(current_node.parent):
+                depth -= 1
+                set_current(current_node.parent)
         elif key == ord('n'):
             advance_comment()
         draw_current_comment()
