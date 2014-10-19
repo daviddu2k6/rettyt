@@ -34,7 +34,8 @@ def submission_to_string(submission, limit):
     title = rawTitle[0:titlelen]
     if len(title) < len(rawTitle):
         title += "..."
-    return left + title + right
+    asdf = right.rjust(limit - (len(left) + len(title)))
+    return left + title + asdf
 
 def draw_submissions(posts):
     global body
