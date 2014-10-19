@@ -17,6 +17,7 @@ import curses
 import curses.textpad
 import praw
 import webbrowser
+import textwrap
 import rettyt.user as user
 from sys import argv
 
@@ -133,7 +134,7 @@ def grab_screenful(lines, subreddit='Front page'):
     yield ret
     return
 
-def handle_key_posts_mode(key):
+def handle_key_posts_mode(stdscr, key):
     global top_line, bottom_line, body, r, sub, page_num, current_entry, page, pages
     if key == (curses.KEY_UP) or key == ord('k'):
         if current_entry > 0:
@@ -156,7 +157,7 @@ def handle_key_posts_mode(key):
     elif key == ord('\n'):
         webbrowser.open_new_tab(page[current_entry].url)
     elif key == ord('c'):
-        webbrowser.open_new_tab(page[current_entry].permalink)
+        comments_main(stdscr)
     elif key == ord('r'):
         load_subreddit()
     elif key == 18:
@@ -218,8 +219,47 @@ def curses_main(stdscr):
         clear_error()
         if key == ord('q') or key == ord('Q') or key == 3:
             return
-        handle_key_posts_mode(key)
+        handle_key_posts_mode(stdscr, key)
         body.refresh()
+
+def comment_lines(comments, cols):
+    ret = []
+    for cmt in comments:
+        if hasattr(cmt, 'body'):
+            for line in textwrap.wrap(cmt.body, width=cols):
+                ret.append(line)
+            ret.append("")
+    return ret
+
+def comments_main(stdscr):
+    top_line.clear()
+    top_line.addstr(0, 0, "SPC: Down  b: Up c: Comments in browser q: Quit")
+    top_line.refresh()
+    body.clear()
+    body.refresh()
+    cols = curses.COLS
+    lines = curses.LINES - 2
+    post = page[current_entry]
+    comments = comment_lines(post.comments, cols)
+    comment_start = 0
+    comment_win = curses.newpad(len(comments), cols)
+    for pos, line in enumerate(comments):
+        comment_win.addstr(pos, 0, line)
+    comment_win.refresh(comment_start, 0, 1, 0, lines, cols)
+    while True:
+        key = stdscr.getch()
+        clear_error()
+        if key == ord('q') or key == ord('Q') or key == 3:
+            return
+        elif key == ord('c'):
+            webbrowser.open_new_tab(post.permalink)
+        elif key == ord(' '):
+            if comment_start + lines < len(comments):
+                comment_start += lines
+        elif key == ord('b'):
+            if comment_start - lines >= 0:
+                comment_start -= lines
+        comment_win.refresh(comment_start, 0, 1, 0, lines, cols)
 
 def main():
     global r
