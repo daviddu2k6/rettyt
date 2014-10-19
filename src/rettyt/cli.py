@@ -256,6 +256,8 @@ def comments_main(stdscr):
         elif key == ord(' '):
             if comment_start + lines < len(comments):
                 comment_start += lines
+                body.clear()
+                body.refresh()
         elif key == ord('b'):
             if comment_start - lines >= 0:
                 comment_start -= lines
