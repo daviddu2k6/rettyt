@@ -78,7 +78,7 @@ def grab_screenful(reddit, lines, subreddit='Front page'):
         submissions = r.get_front_page(limit=None)
     else:
         foo = r.get_subreddit(subreddit)#.get_hot(limit=None)
-        submissions = foo.get_top(limit=None)
+        submissions = foo.get_hot(limit=None)
     for post in submissions:
         ret.append(post)
         if len(ret) >= lines:
@@ -158,7 +158,18 @@ def curses_main(stdscr):
             draw_modeline()
         elif key == ord('\n'):
             webbrowser.open_new_tab(page[current_entry].url)
+        elif key == ord('c'):
+            webbrowser.open_new_tab(page[current_entry].permalink)
         elif key == ord('r'):
+            pages = grab_screenful(r, lines-2, subreddit=sub)
+            page = next(pages)
+            unpaint_line(body, current_entry)
+            draw_submissions(page)
+            current_entry = 0
+            page_num = 1
+            draw_modeline()
+            paint_line(body, current_entry)
+        elif key == 18:
             body.clear()
             draw_submissions(page)
             paint_line(body, current_entry)
