@@ -31,6 +31,7 @@ current_entry = 0
 pages = None
 page = []
 error = False
+CTRL_R = 18
 
 def clear_error():
     global error
@@ -160,7 +161,7 @@ def handle_key_posts_mode(stdscr, key):
         comments_main(stdscr)
     elif key == ord('r'):
         load_subreddit()
-    elif key == 18:
+    elif key == CTRL_R:
         body.clear()
         draw_submissions(page)
         paint_line(body, current_entry)
@@ -250,16 +251,21 @@ def comments_main(stdscr):
         key = stdscr.getch()
         clear_error()
         if key == ord('q') or key == ord('Q') or key == 3:
-            return
+            break
         elif key == ord('c'):
             webbrowser.open_new_tab(post.permalink)
         elif key == ord(' '):
             if comment_start + lines < len(comments):
                 comment_start += lines
+                body.clear()
+                body.refresh()
         elif key == ord('b'):
             if comment_start - lines >= 0:
                 comment_start -= lines
         comment_win.refresh(comment_start, 0, 1, 0, lines, cols)
+    key = CTRL_R 
+    handle_key_posts_mode(stdscr, key)
+    return
 
 def main():
     global r
