@@ -32,6 +32,7 @@ top_line = None
 body = None
 bottom_line = None
 r = None
+subreddits = set()
 sub = None
 page_num = 0
 current_entry = 0
@@ -91,8 +92,11 @@ def load_subreddit():
     paint_line(body, current_entry)
 
 def draw_modeline():
+    global subreddits
     bottom_line.clear()
     theSub = "/r/" + sub if sub != "Front page" else sub
+    if sub.lower() in subreddits:
+        theSub += "*"
     uname_str = " [" + r.user.name + "]" if r.is_logged_in() else ""
     bottom_line.addstr(0, 0, "{} ({})".format(theSub,page_num) + uname_str)
     bottom_line.refresh()
@@ -124,14 +128,18 @@ def draw_submission(post, pos):
     global body
     (lines, cols) = body.getmaxyx()
     post_str = submission_to_string(post, cols - 1)
+    
+    if post.likes is False and not None:
+         post_str = '↓' + post_str[1:]
     body.addstr(pos, 0, post_str)
     if post.likes is True:
+        #broken
         body.chgat(pos, 0, 1, curses.A_BOLD)
 
 def draw_submissions(posts):
     global body
     top_line.clear()
-    top_line.addstr(0, 0, "Enter: Open URL j: Down  k: Up c: Comments r: Refresh q: Quit")
+    top_line.addstr(0, 0, "Enter: Open URL j: Down  k: Up c: Comments R: Refresh q: Quit")
     top_line.refresh()
     pos = 0
     body.clear()
@@ -178,7 +186,7 @@ def grab_screenful(lines, subreddit='Front page'):
     return
 
 def handle_key_posts_mode(stdscr, key):
-    global top_line, bottom_line, body, r, sub, page_num, current_entry, page, pages, page_cache
+    global top_line, bottom_line, body, r, sub, page_num, current_entry, page, pages, page_cache, subreddits
 
     def next_page():
         global page, page_num, current_entry, body, page_cache
@@ -231,11 +239,33 @@ def handle_key_posts_mode(stdscr, key):
         redraw()
     elif key == ord('c'):
         comments_main(stdscr)
-    elif key == ord('r'):
+    elif key == ord('R'):
         page_cache = []
         load_subreddit()
     elif key == CTRL_R:
         redraw()
+    elif key == ord('S'):
+        if not r.is_logged_in:
+            show_error('You must be logged in to subscribe.')
+        elif sub == 'Front page':
+            show_error('You cannot subscribe to the front page.')
+        elif sub in subreddits:
+            show_error('You are already subscribed to {}.'.format(sub))
+        else:
+            r.get_subreddit(sub).subscribe()
+            show_error('You have subscribed to {}.'.format(sub))
+            subreddits.add(sub.lower())
+    elif key == 21:
+        if not r.is_logged_in:
+            show_error('You must be logged in to unsubscribe.')
+        elif sub == 'Front page':
+            show_error('You cannot unsubscribe from the front page.')
+        elif sub.lower() not in subreddits:
+            show_error('You are not subscribed to {}.'.format(sub))
+        else:
+            r.get_subreddit(sub).unsubscribe()
+            show_error('You have unsubscribed from {}.'.format(sub))
+            subreddits.remove(sub.lower())
     elif key == ord('g'):
         page_cache = []
         oldSub = sub
@@ -262,6 +292,7 @@ def handle_key_posts_mode(stdscr, key):
             method = {'U' : post.upvote,
                       'D' : post.downvote,
                       'C' : post.clear_vote}[chr(key)]
+            draw_submission(post, current_entry)
             method()
 
 def curses_main(stdscr):
@@ -322,7 +353,7 @@ def comments_main(stdscr):
         return
 
     top_line.clear()
-    top_line.addstr(0, 0, "SPC: Down  b: Up c: Comments in browser q: Quit")
+    top_line.addstr(0, 0, "SPC: Down  b: Up r: Reply c: Comments in browser q: Quit")
     top_line.refresh()
     cols = curses.COLS
     lines = curses.LINES - 2
@@ -451,10 +482,12 @@ def comments_main(stdscr):
     return
 
 def main():
-    global r
+    global r, subreddits
     r = praw.Reddit(user_agent="rettyt 0.0.2 (HackTX 2014)")
     if len(argv) < 2 or argv[1] != "anon":
         user.load_config()
         user.login(r)
+    if r.is_logged_in:
+        subreddits = set(map(lambda x: x.display_name.lower(), r.get_my_subreddits()))
     curses.wrapper(curses_main)
     r.http.close()
