@@ -67,12 +67,14 @@ def draw_modeline():
     bottom_line.refresh()
 
 def submission_to_string(submission, limit):
+    global sub
     left = "↑ {} ".format(submission.score).ljust(7, ' ')
     vote_status = submission.likes
     if vote_status is False:
         left = '↓' + left[1:]
-    right = " ({}) [/r/{}]".format(submission.domain,
-                                   submission.subreddit.display_name)
+    right = " ({})".format(submission.domain)
+    if sub == 'Front page':
+        right += ' [/r/{}]'.format(submission.subreddit.display_name)
     rawTitle = submission.title
     rawTitle = rawTitle.replace("&amp;", "&")
     rawTitle = rawTitle.replace("&lt;", "<")
