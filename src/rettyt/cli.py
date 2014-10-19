@@ -272,6 +272,9 @@ def isMoreComments(node):
 def isComment(node):
     return node is not None and (isinstance(node.value, praw.objects.Comment) or isinstance(node.value, SelfPost))
 
+def isRealComment(node):
+    return node is not None and isinstance(node.value, praw.objects.Comment)
+
 class SelfPost(object):
     children = []
     body = ""
@@ -403,6 +406,8 @@ def comments_main(stdscr):
         elif key == ord('U') or key == ord('D') or key == ord('C'):
             if not r.is_logged_in():
                 show_error("Can't vote without being logged in")
+            elif not isRealComment(current_node):
+                show_error("Can't up/down vote self post text")
             else:
                 comment = current_node.value
                 comment.clear_vote()
