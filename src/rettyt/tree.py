@@ -21,9 +21,15 @@ class Node(object):
     sibling = None
     parent = None
     value = None
+    lsibling = None
 
     def __init__(self, value, child=None, sibling=None, parent=None):
         self.value = value
+
+    def setSibling(self, node):
+        self.sibling = node
+        if node:
+            node.lsibling = self
 
 def comments_to_tree(forest, parent=None):
     if len(forest) == 0:
@@ -31,7 +37,7 @@ def comments_to_tree(forest, parent=None):
     me = Node(forest[0], parent=parent)
     if not isinstance(me.value, praw.objects.MoreComments):
         me.child = comments_to_tree(me.value.replies, me)
-    me.sibling = comments_to_tree(forest[1:], parent)
+    me.setSibling(comments_to_tree(forest[1:], parent))
     return me
 
 def print_tree(node):
