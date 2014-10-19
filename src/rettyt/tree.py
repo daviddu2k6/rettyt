@@ -34,10 +34,11 @@ class Node(object):
 def comments_to_tree(forest, parent=None):
     if len(forest) == 0:
         return None
-    me = Node(forest[0], parent=parent)
+    me = Node(forest[0])
+    me.parent = parent
     if not isinstance(me.value, praw.objects.MoreComments):
-        me.child = comments_to_tree(me.value.replies, me)
-    me.setSibling(comments_to_tree(forest[1:], parent))
+        me.child = comments_to_tree(me.value.replies, parent=me)
+    me.setSibling(comments_to_tree(forest[1:], parent=parent))
     return me
 
 def print_tree(node):

@@ -310,9 +310,10 @@ def comments_main(stdscr):
 
     def draw_current_comment():
         comment_win.refresh(comment_start, 0, 1, 0, lines, cols)
-        bottom_line.clear()
-        bottom_line.addstr(0, 0, trunc_title + ' ' + '#' * depth)
-        bottom_line.refresh()
+        if not error:
+            bottom_line.clear()
+            bottom_line.addstr(0, 0, trunc_title + ' ' + '#' * depth)
+            bottom_line.refresh()
 
     def prompt_load_more(more, parent):
         ans = get_input("Load more comments (Y/n)? ")
