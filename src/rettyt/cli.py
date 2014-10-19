@@ -192,7 +192,16 @@ def curses_main(stdscr):
                 except praw.errors.RedirectException:
                     show_error("Invalid subreddit: " + sub)
                     sub = oldSub
-
+        elif key == ord('U') or key == ord('D') or key == ord('C'):
+            if not r.is_logged_in():
+                show_error("Can't vote without being logged in")
+            else:
+                post = page[current_entry]
+                post.clear_vote()
+                method = {'U' : post.upvote,
+                          'D' : post.downvote,
+                          'C' : post.clear_vote}[chr(key)]
+                method()
         body.refresh()
 
 def main():
