@@ -28,13 +28,13 @@ def comments_to_tree(forest, parent=None):
     if len(forest) == 0:
         return None
     me = Node(forest[0], parent=parent)
-    if hasattr(forest[0], 'body'):
+    if not isinstance(node.value, praw.object.MoreComments):
         me.child = comments_to_tree(me.value.replies, me)
     me.sibling = comments_to_tree(forest[1:], parent)
     return me
 
 def print_tree(node):
-    if hasattr(node.value, 'body'):
+    if not isinstance(node.value, praw.object.MoreComments):
         print(node.value.body)
         print()
     if node.child:

@@ -240,9 +240,10 @@ def comments_main(stdscr):
     cols = curses.COLS
     lines = curses.LINES - 2
     post = page[current_entry]
-    
-    # Put post title in bottom bar
-    (_, cols) = body.getmaxyx()
+
+    depth = 0
+    current_node = None
+
     trunc_title = post.title.replace("&amp;", "&").replace("&lt;", "<").replace("&gt;", ">")
     if len(trunc_title) > cols - 1:
         trunc_title = trunc_title[0:cols-4] + '...' #leaves a clean chunk of space
@@ -274,7 +275,7 @@ def comments_main(stdscr):
             if comment_start - lines >= 0:
                 comment_start -= lines
         comment_win.refresh(comment_start, 0, 1, 0, lines, cols)
-    key = CTRL_R 
+    key = CTRL_R
     handle_key_posts_mode(stdscr, key)
     return
 
