@@ -65,15 +65,16 @@ def get_input(prompt):
     bottom_line.refresh()
     tb = curses.textpad.Textbox(editor)
     ret = tb.edit()
-    return ret
+    return ret.strip()
 
-def grab_screenful(reddit, lines, subreddit=None):
+def grab_screenful(reddit, lines, subreddit='Front Page'):
     r = reddit
     ret = []
-    if not subreddit:
+    if subreddit == 'Front Page':
         submissions = r.get_front_page(limit=None)
     else:
-        submissions = r.get_subreddit(subreddit).get_hot(limit=None)
+        foo = r.get_subreddit(subreddit)#.get_hot(limit=None)
+        submissions = foo.get_top(limit=None)
     for post in submissions:
         ret.append(post)
         if len(ret) >= lines:
@@ -102,12 +103,13 @@ def curses_main(stdscr):
     top_line.refresh()
     bottom_line.refresh()
 
+    sub = 'Front Page' #hold on to this for future improvements, e.g., custom default subreddit
     r = praw.Reddit(user_agent="rettyt 0.0.1 (HackTX 2014)")
-    frontpages = grab_screenful(r, lines-2)
-    frontpage = next(frontpages)
+    pages = grab_screenful(r, lines-2, sub)
+    page = next(pages)
     page_num = 1
     current_entry = 0
-    draw_submissions(frontpage)
+    draw_submissions(page)
     paint_line(body, 0)
     while True:
         key = stdscr.getch()
@@ -119,30 +121,43 @@ def curses_main(stdscr):
                 current_entry -= 1
                 paint_line(body, current_entry)
         elif key == curses.KEY_DOWN or key == ord('j'):
-            if current_entry < len(frontpage) - 1:
+            if current_entry < len(page) - 1:
                 unpaint_line(body, current_entry)
                 current_entry += 1
                 paint_line(body, current_entry)
-        elif key == ord(' ') and len(frontpage) != 0:
-            frontpage = next(frontpages)
+        elif key == ord(' ') and len(page) != 0:
+            page = next(pages)
             page_num += 1
             current_entry = 0
             body.clear()
-            draw_submissions(frontpage)
+            draw_submissions(page)
             paint_line(body, 0)
             bottom_line.clear()
             bottom_line.addstr("Front page ({})".format(page_num))
             bottom_line.refresh()
         elif key == ord('\n'):
-            webbrowser.open_new_tab(frontpage[current_entry].url)
+            webbrowser.open_new_tab(page[current_entry].url)
         elif key == ord('r'):
             body.clear()
-            draw_submissions(frontpage)
+            draw_submissions(page)
             paint_line(body, current_entry)
         elif key == ord('g'):
-            sub = get_input("Go to (blank for frontpage) /r/")
+            sub = get_input("Go to (blank for front page) /r/")
             bottom_line.clear()
-            bottom_line.addstr(sub if (len(sub) > 0) else "Front page ({})".format(page_num))
+
+            if not sub:
+                bottom_line.addstr("Front page ({})".format(page_num))
+            else:
+                # try:
+                pages = grab_screenful(r, lines-2, subreddit=sub)
+                page = next(pages)
+                draw_submissions(page)
+                page_num = 1
+                bottom_line.addstr("/r/{} ({})".format(sub, page_num))
+                # except HTTPError:
+                    # print(sub)
+                    # print(e)
+                    # bottom_line.addstr("Error: subreddit does not exist. Did you misspell it?")
             bottom_line.refresh()
         body.refresh()
 
