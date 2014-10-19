@@ -19,6 +19,7 @@ import praw
 import webbrowser
 import textwrap
 import rettyt.user as user
+import rettyt.tree as tree
 from sys import argv
 
 top_line = None
@@ -156,7 +157,7 @@ def handle_key_posts_mode(stdscr, key):
     def prev_page():
         global page, page_num, current_entry, body, page_cache
         if len(page_cache) > 0:
-            page = page_cache.pop() 
+            page = page_cache.pop()
             page_num -= 1
             current_entry = curses.LINES - 3
             body.clear()
@@ -251,41 +252,51 @@ def curses_main(stdscr):
         handle_key_posts_mode(stdscr, key)
         body.refresh()
 
-def comment_lines(comments, cols):
-    ret = []
-    for cmt in comments:
-        if hasattr(cmt, 'body'):
-            for line in textwrap.wrap(cmt.body, width=cols):
-                ret.append(line)
-            ret.append("")
-    return ret
-
 def comments_main(stdscr):
+    post = page[current_entry]
+    raw_comments = post.comments
+    if (len(raw_comments) == 0):
+        return
+
     top_line.clear()
     top_line.addstr(0, 0, "SPC: Down  b: Up c: Comments in browser q: Quit")
     top_line.refresh()
     cols = curses.COLS
     lines = curses.LINES - 2
-    post = page[current_entry]
 
-    depth = 0
+    comment_lines = []
     current_node = None
+    comment_start = 0
+    comment_win = None
+
+    def set_current(node):
+        nonlocal comment_lines, current_node, comment_start, comment_win
+        current_node = node
+        comment_lines = textwrap.wrap(node.value.body, width=cols)
+        comment_start = 0
+        comment_win = curses.newpad(len(comment_lines), cols)
+        for pos, line in enumerate(comment_lines):
+            comment_win.addstr(pos, 0, line)
+        body.clear()
+        body.refresh()
+
+    def draw_current_comment():
+        comment_win.refresh(comment_start, 0, 1, 0, lines, cols)
+
+    root = tree.comments_to_tree(raw_comments)
+    depth = 1
+    set_current(root)
 
     trunc_title = post.title.replace("&amp;", "&").replace("&lt;", "<").replace("&gt;", ">")
-    if len(trunc_title) > cols - 1:
-        trunc_title = trunc_title[0:cols-4] + '...' #leaves a clean chunk of space
+    if len(trunc_title) > cols - depth - 1 - 1:
+        trunc_title = trunc_title[0:cols-4-depth-1] + '...' #leaves a clean chunk of space
     bottom_line.clear()
-    bottom_line.addstr(0, 0, trunc_title)
+    bottom_line.addstr(0, 0, trunc_title + ' ' + '#' * depth)
     bottom_line.refresh()
     body.clear()
     body.refresh()
 
-    comments = comment_lines(post.comments, cols)
-    comment_start = 0
-    comment_win = curses.newpad(len(comments), cols)
-    for pos, line in enumerate(comments):
-        comment_win.addstr(pos, 0, line)
-    comment_win.refresh(comment_start, 0, 1, 0, lines, cols)
+    draw_current_comment()
     while True:
         key = stdscr.getch()
         clear_error()
@@ -294,14 +305,14 @@ def comments_main(stdscr):
         elif key == ord('c'):
             webbrowser.open_new_tab(post.permalink)
         elif key == ord(' '):
-            if comment_start + lines < len(comments):
+            if comment_start + lines < len(comment_lines):
                 comment_start += lines
                 body.clear()
                 body.refresh()
         elif key == ord('b'):
             if comment_start - lines >= 0:
                 comment_start -= lines
-        comment_win.refresh(comment_start, 0, 1, 0, lines, cols)
+        draw_current_comment()
     key = CTRL_R
     handle_key_posts_mode(stdscr, key)
     return

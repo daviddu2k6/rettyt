@@ -14,6 +14,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Rettyt.  If not, see <http://www.gnu.org/licenses/>.
 import praw
+import praw.objects
 
 class Node(object):
     child = None
@@ -28,13 +29,13 @@ def comments_to_tree(forest, parent=None):
     if len(forest) == 0:
         return None
     me = Node(forest[0], parent=parent)
-    if not isinstance(node.value, praw.object.MoreComments):
+    if not isinstance(me.value, praw.objects.MoreComments):
         me.child = comments_to_tree(me.value.replies, me)
     me.sibling = comments_to_tree(forest[1:], parent)
     return me
 
 def print_tree(node):
-    if not isinstance(node.value, praw.object.MoreComments):
+    if not isinstance(node.value, praw.objects.MoreComments):
         print(node.value.body)
         print()
     if node.child:
