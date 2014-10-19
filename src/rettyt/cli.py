@@ -17,12 +17,16 @@ import curses
 import curses.textpad
 import praw
 import praw.objects
-import webbrowser
 import textwrap
 
 import rettyt.user as user
 import rettyt.tree as tree
+
+import webbrowser
 from sys import argv
+import os
+import tempfile
+import subprocess
 
 top_line = None
 body = None
@@ -36,6 +40,31 @@ page = []
 error = False
 CTRL_R = 18
 page_cache = []
+
+def get_editor_exe():
+    return (user.config_keys.get("editor") or
+            os.environ.get("VISUAL") or
+            os.environ.get("EDITOR", "vi"))
+
+def compose_reply():
+    (_, path) = tempfile.mkstemp(prefix="rettyt-", suffix=".md", text=True)
+    try:
+        editor = get_editor_exe()
+        try:
+            subprocess.call('{} "{}"'.format(editor,path), shell=True)
+        except:
+            return None
+
+        f = open(name)
+        text = f.read()
+        f.close()
+        os.unlink(path)
+        text = text.strip()
+        if text != "":
+            return None
+        return text
+    finally:
+        os.unlink(path)
 
 def clear_error():
     global error
