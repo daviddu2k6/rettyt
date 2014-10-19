@@ -59,7 +59,7 @@ def load_subreddit():
 
 def draw_modeline():
     bottom_line.clear()
-    theSub = "/r" + sub if sub != "Front page" else sub
+    theSub = "/r/" + sub if sub != "Front page" else sub
     uname_str = " [" + r.user.name + "]" if r.is_logged_in() else ""
     bottom_line.addstr(0, 0, "{} ({})".format(theSub,page_num) + uname_str)
     bottom_line.refresh()
@@ -79,18 +79,21 @@ def submission_to_string(submission, limit):
     title = rawTitle[0:titlelen]
     if len(title) < len(rawTitle):
         title += "..."
-    return left + title + right
+    return left, title, right
 
 def draw_submission(post, pos):
     global body
     (lines, cols) = body.getmaxyx()
-    post_str = submission_to_string(post, cols - 1)
+    post_str = ''.join(submission_to_string(post, cols - 1))
     body.addstr(pos, 0, post_str)
     if post.likes is True:
         body.chgat(pos, 0, 1, curses.A_BOLD)
 
 def draw_submissions(posts):
     global body
+    top_line.clear()
+    top_line.addstr(0, 0, "Enter: Open URL j: Down  k: Up c: Comments r: Refresh q: Quit")
+    top_line.refresh()
     pos = 0
     body.clear()
     for entry in posts:
@@ -162,7 +165,7 @@ def handle_key_posts_mode(stdscr, key):
     elif key == ord('r'):
         load_subreddit()
     elif key == CTRL_R:
-        body.clear()
+        draw_modeline()
         draw_submissions(page)
         paint_line(body, current_entry)
     elif key == ord('g'):
@@ -204,8 +207,6 @@ def curses_main(stdscr):
 
     top_line.bkgd(ord(' '), curses.color_pair(1))
     bottom_line.bkgd(ord(' '), curses.color_pair(1))
-    top_line.addstr(0, 0, "Enter: Open URL j: Down  k: Up c: Comments r: Refresh q: Quit")
-    top_line.refresh()
 
     sub = 'Front page' #hold on to this for future improvements, e.g., custom default subreddit
     pages = grab_screenful(lines-2, sub)
@@ -236,11 +237,21 @@ def comments_main(stdscr):
     top_line.clear()
     top_line.addstr(0, 0, "SPC: Down  b: Up c: Comments in browser q: Quit")
     top_line.refresh()
-    body.clear()
-    body.refresh()
     cols = curses.COLS
     lines = curses.LINES - 2
     post = page[current_entry]
+    
+    # Put post title in bottom bar
+    (_, cols) = body.getmaxyx()
+    trunc_title = post.title.replace("&amp;", "&").replace("&lt;", "<").replace("&gt;", ">")
+    if len(trunc_title) > cols - 1:
+        trunc_title = trunc_title[0:cols-4] + '...' #leaves a clean chunk of space
+    bottom_line.clear()
+    bottom_line.addstr(0, 0, trunc_title)
+    bottom_line.refresh()
+    body.clear()
+    body.refresh()
+
     comments = comment_lines(post.comments, cols)
     comment_start = 0
     comment_win = curses.newpad(len(comments), cols)
