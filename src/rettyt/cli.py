@@ -27,6 +27,9 @@ r = None
 
 def submission_to_string(submission, limit):
     left = "↑ {} ".format(submission.score).ljust(7, ' ')
+    vote_status = submission.likes
+    if vote_status is False:
+        left = '↓' + left[1:]
     right = " ({}) [/r/{}]".format(submission.domain,
                                    submission.subreddit.display_name)
     rawTitle = submission.title
@@ -39,14 +42,20 @@ def submission_to_string(submission, limit):
         title += "..."
     return left + title + right
 
-def draw_submissions(posts):
+def draw_submission(post, pos):
     global body
     (lines, cols) = body.getmaxyx()
+    post_str = submission_to_string(post, cols - 1)
+    body.addstr(pos, 0, post_str)
+    if post.likes is True:
+        body.chgat(pos, 0, 1, curses.A_BOLD)
+
+def draw_submissions(posts):
+    global body
     pos = 0
     body.clear()
     for entry in posts:
-        post_str = submission_to_string(entry, cols - 1)
-        body.addstr(pos, 0, post_str)
+        draw_submission(entry, pos)
         pos += 1
     body.refresh()
 
