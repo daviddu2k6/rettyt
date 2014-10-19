@@ -120,6 +120,16 @@ def curses_main(stdscr):
         bottom_line.addstr(0, 0, "{} ({})".format(theSub,page_num) + uname_str)
         bottom_line.refresh()
 
+    def load_subreddit():
+        pages = grab_screenful(r, lines-2, subreddit=sub)
+        page = next(pages)
+        unpaint_line(body, current_entry)
+        draw_submissions(page)
+        current_entry = 0
+        page_num = 1
+        draw_modeline()
+        paint_line(body, current_entry)
+
     top_line.bkgd(ord(' '), curses.color_pair(1))
     bottom_line.bkgd(ord(' '), curses.color_pair(1))
     top_line.addstr(0, 0, "Enter: Open URL  j: Down  k: Up  q: Quit")
