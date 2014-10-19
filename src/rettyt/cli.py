@@ -85,7 +85,7 @@ def submission_to_string(submission, limit):
     title = rawTitle[0:titlelen]
     if len(title) < len(rawTitle):
         title += "..."
-    else: 
+    else:
         #padding with spaces to right justify
         right = ' ' * (avail_titlespace - titlelen + 3) + right
     return left + title + right
@@ -318,7 +318,7 @@ def comments_main(stdscr):
             set_current(current_node.child)
             return
         if isMoreComments(current_node.sibling):
-            current_node.sibling = prompt_load_more(current_node.sibling.value, current_node.parent)
+            current_node.setSibling(prompt_load_more(current_node.sibling.value, current_node.parent))
         if isComment(current_node.sibling):
             set_current(current_node.sibling)
             return
