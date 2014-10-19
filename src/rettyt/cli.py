@@ -140,7 +140,7 @@ def grab_screenful(lines, subreddit='Front page'):
     return
 
 def handle_key_posts_mode(stdscr, key):
-    global top_line, bottom_line, body, r, sub, page_num, current_entry, page, pages
+    global top_line, bottom_line, body, r, sub, page_num, current_entry, page, pages, page_cache
 
     def next_page():
         global page, page_num, current_entry, body, page_cache
@@ -195,6 +195,7 @@ def handle_key_posts_mode(stdscr, key):
         draw_submissions(page)
         paint_line(body, current_entry)
     elif key == ord('g'):
+        page_cache = []
         oldSub = sub
         sub = get_input("Go to (blank for front page) /r/")
         bottom_line.clear()
