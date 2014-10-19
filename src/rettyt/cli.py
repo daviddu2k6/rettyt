@@ -71,10 +71,10 @@ def get_input(prompt):
     ret = tb.edit()
     return ret.strip()
 
-def grab_screenful(reddit, lines, subreddit='Front Page'):
+def grab_screenful(reddit, lines, subreddit='Front page'):
     r = reddit
     ret = []
-    if subreddit == 'Front Page':
+    if subreddit == 'Front page':
         submissions = r.get_front_page(limit=None)
     else:
         foo = r.get_subreddit(subreddit)#.get_hot(limit=None)
@@ -99,6 +99,20 @@ def curses_main(stdscr):
     bottom_line = curses.newwin(1, cols, lines - 1, 0)
     body = curses.newwin(lines - 2, cols, 1, 0)
     uname_str = " [" + r.user.name + "]" if r.is_logged_in() else ""
+    error = False
+
+    def clear_error():
+        nonlocal error
+        if error:
+            error = False
+            draw_modeline()
+
+    def show_error(string):
+        nonlocal error
+        error = True
+        bottom_line.clear()
+        bottom_line.addstr(string)
+        bottom_line.refresh()
 
     def draw_modeline():
         bottom_line.clear()
@@ -111,7 +125,7 @@ def curses_main(stdscr):
     top_line.addstr(0, 0, "Enter: Open URL  j: Down  k: Up  q: Quit")
     top_line.refresh()
 
-    sub = 'Front Page' #hold on to this for future improvements, e.g., custom default subreddit
+    sub = 'Front page' #hold on to this for future improvements, e.g., custom default subreddit
     pages = grab_screenful(r, lines-2, sub)
     page = next(pages)
     page_num = 1
@@ -121,6 +135,7 @@ def curses_main(stdscr):
     paint_line(body, 0)
     while True:
         key = stdscr.getch()
+        clear_error()
         if key == ord('q') or key == ord('Q') or key == 3:
             return
         elif key == (curses.KEY_UP) or key == ord('k'):
@@ -148,6 +163,7 @@ def curses_main(stdscr):
             draw_submissions(page)
             paint_line(body, current_entry)
         elif key == ord('g'):
+            oldSub = sub
             sub = get_input("Go to (blank for front page) /r/")
             bottom_line.clear()
 
@@ -155,19 +171,19 @@ def curses_main(stdscr):
                 sub = "Front page"
                 draw_modeline()
             else:
-                # try:
-                pages = grab_screenful(r, lines-2, subreddit=sub)
-                page = next(pages)
-                unpaint_line(body, current_entry)
-                draw_submissions(page)
-                current_entry = 0
-                page_num = 1
-                draw_modeline()
-                paint_line(body, current_entry)
-                # except HTTPError:
-                    # print(sub)
-                    # print(e)
-                    # bottom_line.addstr("Error: subreddit does not exist. Did you misspell it?")
+                try:
+                    pages = grab_screenful(r, lines-2, subreddit=sub)
+                    page = next(pages)
+                    unpaint_line(body, current_entry)
+                    draw_submissions(page)
+                    current_entry = 0
+                    page_num = 1
+                    draw_modeline()
+                    paint_line(body, current_entry)
+                except praw.errors.RedirectException:
+                    show_error("Invalid subreddit: " + sub)
+                    sub = oldSub
+
         body.refresh()
 
 def main():
