@@ -19,6 +19,7 @@ import praw
 import praw.objects
 import webbrowser
 import textwrap
+
 import rettyt.user as user
 import rettyt.tree as tree
 from sys import argv
@@ -172,6 +173,11 @@ def handle_key_posts_mode(stdscr, key):
             paint_line(body, curses.LINES - 3)
             draw_modeline()
 
+    def redraw():
+        draw_modeline()
+        draw_submissions(page)
+        paint_line(body, current_entry)
+
     if key == (curses.KEY_UP) or key == ord('k'):
         if current_entry > 0:
             unpaint_line(body, current_entry)
@@ -193,15 +199,14 @@ def handle_key_posts_mode(stdscr, key):
         next_page()
     elif key == ord('\n'):
         webbrowser.open_new_tab(page[current_entry].url)
+        redraw()
     elif key == ord('c'):
         comments_main(stdscr)
     elif key == ord('r'):
         page_cache = []
         load_subreddit()
     elif key == CTRL_R:
-        draw_modeline()
-        draw_submissions(page)
-        paint_line(body, current_entry)
+        redraw()
     elif key == ord('g'):
         page_cache = []
         oldSub = sub
@@ -275,6 +280,7 @@ class SelfPost(object):
         self.body = text
 
 def comments_main(stdscr):
+    global r, top_line, bottom_line, body, page, current_entry
     post = page[current_entry]
     raw_comments = post.comments
     if post.is_self:
@@ -394,6 +400,17 @@ def comments_main(stdscr):
                 set_current(current_node.parent)
         elif key == ord('n'):
             advance_comment()
+        elif key == ord('U') or key == ord('D') or key == ord('C'):
+            if not r.is_logged_in():
+                show_error("Can't vote without being logged in")
+            else:
+                comment = current_node.value
+                comment.clear_vote()
+                method = {'U' : comment.upvote,
+                          'D' : comment.downvote,
+                          'C' : comment.clear_vote}[chr(key)]
+                method()
+
         draw_current_comment()
     key = CTRL_R
     handle_key_posts_mode(stdscr, key)
