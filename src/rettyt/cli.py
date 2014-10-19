@@ -56,12 +56,11 @@ def compose_reply():
         except:
             return None
 
-        f = open(name)
+        f = open(path)
         text = f.read()
         f.close()
-        os.unlink(path)
         text = text.strip()
-        if text != "":
+        if text == "":
             return None
         return text
     finally:
@@ -139,7 +138,7 @@ def draw_submission(post, pos):
 def draw_submissions(posts):
     global body
     top_line.clear()
-    top_line.addstr(0, 0, "Enter: Open URL j: Down  k: Up c: Comments R: Refresh q: Quit")
+    top_line.addstr(0, 0, "Enter: Open URL j: Down  k: Up c: Comments r: Reply R: Refresh q: Quit")
     top_line.refresh()
     pos = 0
     body.clear()
@@ -239,6 +238,18 @@ def handle_key_posts_mode(stdscr, key):
         redraw()
     elif key == ord('c'):
         comments_main(stdscr)
+    elif key == ord('r'):
+        if not r.is_logged_in():
+            show_error("Can't reply to things when not logged in.")
+        else:
+            text = compose_reply()
+            if text and text != "":
+                post = page[current_entry]
+                post.add_comment(text)
+                post.refresh()
+            else:
+                show_error("Reply aborted.")
+
     elif key == ord('R'):
         page_cache = []
         load_subreddit()
@@ -353,7 +364,7 @@ def comments_main(stdscr):
         return
 
     top_line.clear()
-    top_line.addstr(0, 0, "SPC: Down  b: Up r: Reply c: Comments in browser q: Quit")
+    top_line.addstr(0, 0, "SPC: Down  b: Up c: Comments in browser r: Reply q: Quit")
     top_line.refresh()
     cols = curses.COLS
     lines = curses.LINES - 2
@@ -475,7 +486,19 @@ def comments_main(stdscr):
                           'D' : comment.downvote,
                           'C' : comment.clear_vote}[chr(key)]
                 method()
-
+        elif key == ord('r'):
+            if not r.is_logged_in():
+                show_error("Can't reply to things when not logged in.")
+            else:
+                text = compose_reply()
+                if text and text != "":
+                    if isRealComment(current_node):
+                        current_node.value.reply(text)
+                    elif isinstance(current_node.value, SelfPost):
+                        post.add_comment(text)
+                    post.refresh()
+                else:
+                    show_error("Reply aborted.")
         draw_current_comment()
     key = CTRL_R
     handle_key_posts_mode(stdscr, key)
