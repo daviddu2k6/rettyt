@@ -161,6 +161,8 @@ def curses_main(stdscr):
                 page = next(pages)
                 draw_submissions(page)
                 draw_submissions(page)
+                current_entry = 0
+                paint_line(body, current_entry)
             bottom_line.refresh()
         body.refresh()
 
