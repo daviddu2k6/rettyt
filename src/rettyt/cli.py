@@ -121,7 +121,9 @@ def curses_main(stdscr):
         bottom_line.refresh()
 
     def load_subreddit():
-        pages = grab_screenful(r, lines-2, subreddit=sub)
+        global body
+        nonlocal sub, lines, current_entry, page_num, pages, page
+        pages = grab_screenful(r, lines - 2, subreddit=sub)
         page = next(pages)
         unpaint_line(body, current_entry)
         draw_submissions(page)
@@ -132,7 +134,7 @@ def curses_main(stdscr):
 
     top_line.bkgd(ord(' '), curses.color_pair(1))
     bottom_line.bkgd(ord(' '), curses.color_pair(1))
-    top_line.addstr(0, 0, "Enter: Open URL  j: Down  k: Up  q: Quit")
+    top_line.addstr(0, 0, "Enter: Open URL j: Down  k: Up c: Comments r: Refresh q: Quit")
     top_line.refresh()
 
     sub = 'Front page' #hold on to this for future improvements, e.g., custom default subreddit
@@ -171,14 +173,7 @@ def curses_main(stdscr):
         elif key == ord('c'):
             webbrowser.open_new_tab(page[current_entry].permalink)
         elif key == ord('r'):
-            pages = grab_screenful(r, lines-2, subreddit=sub)
-            page = next(pages)
-            unpaint_line(body, current_entry)
-            draw_submissions(page)
-            current_entry = 0
-            page_num = 1
-            draw_modeline()
-            paint_line(body, current_entry)
+            load_subreddit()
         elif key == 18:
             body.clear()
             draw_submissions(page)
@@ -193,14 +188,7 @@ def curses_main(stdscr):
                 draw_modeline()
             else:
                 try:
-                    pages = grab_screenful(r, lines-2, subreddit=sub)
-                    page = next(pages)
-                    unpaint_line(body, current_entry)
-                    draw_submissions(page)
-                    current_entry = 0
-                    page_num = 1
-                    draw_modeline()
-                    paint_line(body, current_entry)
+                    load_subreddit()
                 except praw.errors.RedirectException:
                     show_error("Invalid subreddit: " + sub)
                     sub = oldSub
