@@ -13,7 +13,7 @@ setup(
     license = "GPL",
     package_dir = {'': 'src'},
     packages = ["rettyt"],
-    long_description = read("README"),
+    long_description = read("README.md"),
     classifiers = [
         "Development Status :: 4 - Beta",
         "Environment :: Console :: Curses",

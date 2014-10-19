@@ -447,6 +447,10 @@ def comments_main(stdscr):
             break
         elif key == ord('c'):
             webbrowser.open_new_tab(post.permalink)
+        elif key == CTRL_R:
+            body.clear()
+            body.refresh()
+            draw_current_comment()
         elif key == ord(' ') or key == ord('\n'):
             if comment_start + lines < len(comment_lines):
                 comment_start += lines
