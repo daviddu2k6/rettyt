@@ -24,6 +24,43 @@ top_line = None
 body = None
 bottom_line = None
 r = None
+sub = None
+page_num = 0
+current_entry = 0
+pages = None
+page = []
+error = False
+
+def clear_error():
+    global error
+    if error:
+        error = False
+        draw_modeline()
+
+def show_error(string):
+    global error
+    error = True
+    bottom_line.clear()
+    bottom_line.addstr(string)
+    bottom_line.refresh()
+
+def load_subreddit():
+    global body, current_entry, page_num, pages, page, sub
+    pages = grab_screenful(curses.LINES - 2, subreddit=sub)
+    page = next(pages)
+    unpaint_line(body, current_entry)
+    draw_submissions(page)
+    current_entry = 0
+    page_num = 1
+    draw_modeline()
+    paint_line(body, current_entry)
+
+def draw_modeline():
+    bottom_line.clear()
+    theSub = "/r" + sub if sub != "Front page" else sub
+    uname_str = " [" + r.user.name + "]" if r.is_logged_in() else ""
+    bottom_line.addstr(0, 0, "{} ({})".format(theSub,page_num) + uname_str)
+    bottom_line.refresh()
 
 def submission_to_string(submission, limit):
     left = "↑ {} ".format(submission.score).ljust(7, ' ')
@@ -80,8 +117,8 @@ def get_input(prompt):
     ret = tb.edit()
     return ret.strip()
 
-def grab_screenful(reddit, lines, subreddit='Front page'):
-    r = reddit
+def grab_screenful(lines, subreddit='Front page'):
+    global r
     ret = []
     if subreddit == 'Front page':
         submissions = r.get_front_page(limit=None)
@@ -96,8 +133,63 @@ def grab_screenful(reddit, lines, subreddit='Front page'):
     yield ret
     return
 
+def handle_key_posts_mode(key):
+    global top_line, bottom_line, body, r, sub, page_num, current_entry, page, pages
+    if key == (curses.KEY_UP) or key == ord('k'):
+        if current_entry > 0:
+            unpaint_line(body, current_entry)
+            current_entry -= 1
+            paint_line(body, current_entry)
+    elif key == curses.KEY_DOWN or key == ord('j'):
+        if current_entry < len(page) - 1:
+            unpaint_line(body, current_entry)
+            current_entry += 1
+            paint_line(body, current_entry)
+    elif key == ord(' ') and len(page) != 0:
+        page = next(pages)
+        page_num += 1
+        current_entry = 0
+        body.clear()
+        draw_submissions(page)
+        paint_line(body, 0)
+        draw_modeline()
+    elif key == ord('\n'):
+        webbrowser.open_new_tab(page[current_entry].url)
+    elif key == ord('c'):
+        webbrowser.open_new_tab(page[current_entry].permalink)
+    elif key == ord('r'):
+        load_subreddit()
+    elif key == 18:
+        body.clear()
+        draw_submissions(page)
+        paint_line(body, current_entry)
+    elif key == ord('g'):
+        oldSub = sub
+        sub = get_input("Go to (blank for front page) /r/")
+        bottom_line.clear()
+
+        if not sub:
+            sub = "Front page"
+            draw_modeline()
+        else:
+            try:
+                load_subreddit()
+            except praw.errors.RedirectException:
+                show_error("Invalid subreddit: " + sub)
+                sub = oldSub
+    elif key == ord('U') or key == ord('D') or key == ord('C'):
+        if not r.is_logged_in():
+            show_error("Can't vote without being logged in")
+        else:
+            post = page[current_entry]
+            post.clear_vote()
+            method = {'U' : post.upvote,
+                      'D' : post.downvote,
+                      'C' : post.clear_vote}[chr(key)]
+            method()
+
 def curses_main(stdscr):
-    global top_line, bottom_line, body, r
+    global top_line, bottom_line, body, r, sub, page_num, current_entry, page, pages
     curses.init_pair(1, curses.COLOR_WHITE, curses.COLOR_BLUE)
     curses.init_pair(2, curses.COLOR_WHITE, curses.COLOR_CYAN)
     stdscr.refresh()
@@ -107,39 +199,6 @@ def curses_main(stdscr):
     top_line = curses.newwin(1, cols, 0, 0)
     bottom_line = curses.newwin(1, cols, lines - 1, 0)
     body = curses.newwin(lines - 2, cols, 1, 0)
-    uname_str = " [" + r.user.name + "]" if r.is_logged_in() else ""
-    error = False
-
-    def clear_error():
-        nonlocal error
-        if error:
-            error = False
-            draw_modeline()
-
-    def show_error(string):
-        nonlocal error
-        error = True
-        bottom_line.clear()
-        bottom_line.addstr(string)
-        bottom_line.refresh()
-
-    def draw_modeline():
-        bottom_line.clear()
-        theSub = "/r" + sub if sub != "Front page" else sub
-        bottom_line.addstr(0, 0, "{} ({})".format(theSub,page_num) + uname_str)
-        bottom_line.refresh()
-
-    def load_subreddit():
-        global body
-        nonlocal sub, lines, current_entry, page_num, pages, page
-        pages = grab_screenful(r, lines - 2, subreddit=sub)
-        page = next(pages)
-        unpaint_line(body, current_entry)
-        draw_submissions(page)
-        current_entry = 0
-        page_num = 1
-        draw_modeline()
-        paint_line(body, current_entry)
 
     top_line.bkgd(ord(' '), curses.color_pair(1))
     bottom_line.bkgd(ord(' '), curses.color_pair(1))
@@ -147,7 +206,7 @@ def curses_main(stdscr):
     top_line.refresh()
 
     sub = 'Front page' #hold on to this for future improvements, e.g., custom default subreddit
-    pages = grab_screenful(r, lines-2, sub)
+    pages = grab_screenful(lines-2, sub)
     page = next(pages)
     page_num = 1
     current_entry = 0
@@ -159,58 +218,7 @@ def curses_main(stdscr):
         clear_error()
         if key == ord('q') or key == ord('Q') or key == 3:
             return
-        elif key == (curses.KEY_UP) or key == ord('k'):
-            if current_entry > 0:
-                unpaint_line(body, current_entry)
-                current_entry -= 1
-                paint_line(body, current_entry)
-        elif key == curses.KEY_DOWN or key == ord('j'):
-            if current_entry < len(page) - 1:
-                unpaint_line(body, current_entry)
-                current_entry += 1
-                paint_line(body, current_entry)
-        elif key == ord(' ') and len(page) != 0:
-            page = next(pages)
-            page_num += 1
-            current_entry = 0
-            body.clear()
-            draw_submissions(page)
-            paint_line(body, 0)
-            draw_modeline()
-        elif key == ord('\n'):
-            webbrowser.open_new_tab(page[current_entry].url)
-        elif key == ord('c'):
-            webbrowser.open_new_tab(page[current_entry].permalink)
-        elif key == ord('r'):
-            load_subreddit()
-        elif key == 18:
-            body.clear()
-            draw_submissions(page)
-            paint_line(body, current_entry)
-        elif key == ord('g'):
-            oldSub = sub
-            sub = get_input("Go to (blank for front page) /r/")
-            bottom_line.clear()
-
-            if not sub:
-                sub = "Front page"
-                draw_modeline()
-            else:
-                try:
-                    load_subreddit()
-                except praw.errors.RedirectException:
-                    show_error("Invalid subreddit: " + sub)
-                    sub = oldSub
-        elif key == ord('U') or key == ord('D') or key == ord('C'):
-            if not r.is_logged_in():
-                show_error("Can't vote without being logged in")
-            else:
-                post = page[current_entry]
-                post.clear_vote()
-                method = {'U' : post.upvote,
-                          'D' : post.downvote,
-                          'C' : post.clear_vote}[chr(key)]
-                method()
+        handle_key_posts_mode(key)
         body.refresh()
 
 def main():
