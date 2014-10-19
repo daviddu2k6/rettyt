@@ -146,20 +146,21 @@ def curses_main(stdscr):
         elif key == ord('g'):
             sub = get_input("Go to (blank for front page) /r/")
             bottom_line.clear()
-
-            if not sub:
-                bottom_line.addstr("Front page ({})".format(page_num))
+            try:
+                if not sub:
+                    sub = 'Front Page'
+                    bottom_line.addstr("Front page ({})".format(page_num))
+                else:
+                    bottom_line.addstr("/r/{} ({})".format(sub, page_num))
+            except praw.errors.RedirectException:
+                bottom_line.addstr("Error: subreddit does not exist. Did you misspell it?")
             else:
-                # try:
-                pages = grab_screenful(r, lines-2, subreddit=sub)
+                body.clear()
+                page_num = 1
+                pages = grab_screenful(r, lines-2, sub)
                 page = next(pages)
                 draw_submissions(page)
-                page_num = 1
-                bottom_line.addstr("/r/{} ({})".format(sub, page_num))
-                # except HTTPError:
-                    # print(sub)
-                    # print(e)
-                    # bottom_line.addstr("Error: subreddit does not exist. Did you misspell it?")
+                draw_submissions(page)
             bottom_line.refresh()
         body.refresh()
 
