@@ -17,7 +17,8 @@ import curses
 import curses.textpad
 import praw
 import webbrowser
-import user
+import rettyt.user as user
+from sys import argv
 
 top_line = None
 body = None
@@ -42,6 +43,7 @@ def draw_submissions(posts):
     global body
     (lines, cols) = body.getmaxyx()
     pos = 0
+    body.clear()
     for entry in posts:
         post_str = submission_to_string(entry, cols - 1)
         body.addstr(pos, 0, post_str)
@@ -96,20 +98,25 @@ def curses_main(stdscr):
     top_line = curses.newwin(1, cols, 0, 0)
     bottom_line = curses.newwin(1, cols, lines - 1, 0)
     body = curses.newwin(lines - 2, cols, 1, 0)
+    uname_str = " [" + r.user.name + "]" if r.is_logged_in() else ""
+
+    def draw_modeline():
+        bottom_line.clear()
+        theSub = "/r" + sub if sub != "Front page" else sub
+        bottom_line.addstr(0, 0, "{} ({})".format(theSub,page_num) + uname_str)
+        bottom_line.refresh()
 
     top_line.bkgd(ord(' '), curses.color_pair(1))
     bottom_line.bkgd(ord(' '), curses.color_pair(1))
     top_line.addstr(0, 0, "Enter: Open URL  j: Down  k: Up  q: Quit")
-    bottom_line.addstr(0, 0, "Front page (1)")
-
     top_line.refresh()
-    bottom_line.refresh()
 
     sub = 'Front Page' #hold on to this for future improvements, e.g., custom default subreddit
     pages = grab_screenful(r, lines-2, sub)
     page = next(pages)
     page_num = 1
     current_entry = 0
+    draw_modeline()
     draw_submissions(page)
     paint_line(body, 0)
     while True:
@@ -133,9 +140,7 @@ def curses_main(stdscr):
             body.clear()
             draw_submissions(page)
             paint_line(body, 0)
-            bottom_line.clear()
-            bottom_line.addstr("Front page ({})".format(page_num))
-            bottom_line.refresh()
+            draw_modeline()
         elif key == ord('\n'):
             webbrowser.open_new_tab(page[current_entry].url)
         elif key == ord('r'):
@@ -147,23 +152,29 @@ def curses_main(stdscr):
             bottom_line.clear()
 
             if not sub:
-                bottom_line.addstr("Front page ({})".format(page_num))
+                sub = "Front page"
+                draw_modeline()
             else:
                 # try:
                 pages = grab_screenful(r, lines-2, subreddit=sub)
                 page = next(pages)
+                unpaint_line(body, current_entry)
                 draw_submissions(page)
+                current_entry = 0
                 page_num = 1
-                bottom_line.addstr("/r/{} ({})".format(sub, page_num))
+                draw_modeline()
+                paint_line(body, current_entry)
                 # except HTTPError:
                     # print(sub)
                     # print(e)
                     # bottom_line.addstr("Error: subreddit does not exist. Did you misspell it?")
-            bottom_line.refresh()
         body.refresh()
 
 def main():
     global r
-    r = praw.Reddit(user_agent="rettyt 0.0.1 (HackTX 2014)")
-    user.find_config()
+    r = praw.Reddit(user_agent="rettyt 0.0.2 (HackTX 2014)")
+    if len(argv) < 2 or argv[1] != "anon":
+        user.load_config()
+        user.login(r)
     curses.wrapper(curses_main)
+    r.http.close()

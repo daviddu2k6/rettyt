@@ -6,7 +6,7 @@ def read(fname):
 
 setup(
     name = "rettyt",
-    version = "0.0.1",
+    version = "0.0.2",
     author = "Krzysztof Drewniak, David Du, and Tom Lu",
     author_email = "krzysdrewniak@gmail.com",
     description = "Command-line reddit client",
