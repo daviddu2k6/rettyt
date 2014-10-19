@@ -77,10 +77,14 @@ def submission_to_string(submission, limit):
     rawTitle = rawTitle.replace("&amp;", "&")
     rawTitle = rawTitle.replace("&lt;", "<")
     rawTitle = rawTitle.replace("&gt;", ">")
-    titlelen = min(len(rawTitle), limit - len(left) - len(right) - 3)
+    avail_titlespace = limit - len(left) - len(right) - 3
+    titlelen = min(len(rawTitle), avail_titlespace)
     title = rawTitle[0:titlelen]
     if len(title) < len(rawTitle):
         title += "..."
+    else: 
+        #padding with spaces to right justify
+        right = ' ' * (avail_titlespace - titlelen + 3) + right
     return left + title + right
 
 def draw_submission(post, pos):
