@@ -16,6 +16,7 @@
 import curses
 import curses.textpad
 import praw
+import praw.objects
 import webbrowser
 import textwrap
 import rettyt.user as user
@@ -252,6 +253,12 @@ def curses_main(stdscr):
         handle_key_posts_mode(stdscr, key)
         body.refresh()
 
+def isMoreComments(node):
+    return node is not None and isinstance(node.value, praw.objects.MoreComments)
+
+def isComment(node):
+    return node is not None and isinstance(node.value, praw.objects.Comment)
+
 def comments_main(stdscr):
     post = page[current_entry]
     raw_comments = post.comments
@@ -264,6 +271,7 @@ def comments_main(stdscr):
     cols = curses.COLS
     lines = curses.LINES - 2
 
+    node_stack = []
     comment_lines = []
     current_node = None
     comment_start = 0
@@ -282,6 +290,38 @@ def comments_main(stdscr):
 
     def draw_current_comment():
         comment_win.refresh(comment_start, 0, 1, 0, lines, cols)
+        bottom_line.clear()
+        bottom_line.addstr(0, 0, trunc_title + ' ' + '#' * depth)
+        bottom_line.refresh()
+
+    def prompt_load_more(more, parent):
+        ans = get_input("Load more comments (Y/n)? ")
+        if (ans == "" or ans[0] == "y" or ans[0] == "Y"):
+            return tree.comments_to_tree(more.comments(), parent)
+        else:
+            return more
+
+    def advance_comment():
+        nonlocal node_stack, current_node, depth
+        if isMoreComments(current_node.child):
+            current_node.child = prompt_load_more(current_node.child.value, current_node)
+        if isComment(current_node.child):
+            depth += 1
+            if current_node.sibling is not None:
+                node_stack.append(current_node.sibling)
+            set_current(current_node.child)
+            return
+        if isMoreComments(current_node.sibling):
+            current_node.sibling = prompt_load_more(current_node.sibling.value, current_node.parent)
+        if isComment(current_node.sibling):
+            set_current(current_node.sibling)
+            return
+        if current_node.parent is None and not node_stack:
+            return
+        else:
+            depth -= 1
+            set_current(node_stack.pop())
+            return
 
     root = tree.comments_to_tree(raw_comments)
     depth = 1
@@ -290,9 +330,6 @@ def comments_main(stdscr):
     trunc_title = post.title.replace("&amp;", "&").replace("&lt;", "<").replace("&gt;", ">")
     if len(trunc_title) > cols - depth - 1 - 1:
         trunc_title = trunc_title[0:cols-4-depth-1] + '...' #leaves a clean chunk of space
-    bottom_line.clear()
-    bottom_line.addstr(0, 0, trunc_title + ' ' + '#' * depth)
-    bottom_line.refresh()
     body.clear()
     body.refresh()
 
@@ -309,9 +346,13 @@ def comments_main(stdscr):
                 comment_start += lines
                 body.clear()
                 body.refresh()
+            else:
+                advance_comment()
         elif key == ord('b'):
             if comment_start - lines >= 0:
                 comment_start -= lines
+        elif key == ord('n'):
+            advance_comment()
         draw_current_comment()
     key = CTRL_R
     handle_key_posts_mode(stdscr, key)
