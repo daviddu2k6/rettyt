@@ -211,6 +211,8 @@ def handle_key_posts_mode(stdscr, key):
         if not sub:
             sub = "Front page"
             draw_modeline()
+            if oldSub != "Front page":
+                load_subreddit()
         else:
             try:
                 load_subreddit()
