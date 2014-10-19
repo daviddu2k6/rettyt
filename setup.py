@@ -6,7 +6,7 @@ def read(fname):
 
 setup(
     name = "rettyt",
-    version = "0.0.2",
+    version = "0.1.0",
     author = "Krzysztof Drewniak, David Du, and Tom Lu",
     author_email = "krzysdrewniak@gmail.com",
     description = "Command-line reddit client",
@@ -15,7 +15,7 @@ setup(
     packages = ["rettyt"],
     long_description = read("README"),
     classifiers = [
-        "Development Status :: 1 - Planning",
+        "Development Status :: 4 - Beta",
         "Environment :: Console :: Curses",
         "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
     ],

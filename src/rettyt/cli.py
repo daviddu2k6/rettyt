@@ -127,7 +127,7 @@ def draw_submission(post, pos):
     global body
     (lines, cols) = body.getmaxyx()
     post_str = submission_to_string(post, cols - 1)
-    
+
     if post.likes is False and not None:
          post_str = '↓' + post_str[1:]
     body.addstr(pos, 0, post_str)
@@ -506,7 +506,7 @@ def comments_main(stdscr):
 
 def main():
     global r, subreddits
-    r = praw.Reddit(user_agent="rettyt 0.0.2 (HackTX 2014)")
+    r = praw.Reddit(user_agent="rettyt 0.1.0 (HackTX 2014)")
     if len(argv) < 2 or argv[1] != "anon":
         user.load_config()
         user.login(r)
