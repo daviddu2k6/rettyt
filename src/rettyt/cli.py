@@ -17,10 +17,12 @@ import curses
 import curses.textpad
 import praw
 import webbrowser
+import user
 
 top_line = None
 body = None
 bottom_line = None
+r = None
 
 def submission_to_string(submission, limit):
     left = "↑ {} ".format(submission.score).ljust(7, ' ')
@@ -84,7 +86,7 @@ def grab_screenful(reddit, lines, subreddit='Front Page'):
     return
 
 def curses_main(stdscr):
-    global top_line, bottom_line, body
+    global top_line, bottom_line, body, r
     curses.init_pair(1, curses.COLOR_WHITE, curses.COLOR_BLUE)
     curses.init_pair(2, curses.COLOR_WHITE, curses.COLOR_CYAN)
     stdscr.refresh()
@@ -104,7 +106,6 @@ def curses_main(stdscr):
     bottom_line.refresh()
 
     sub = 'Front Page' #hold on to this for future improvements, e.g., custom default subreddit
-    r = praw.Reddit(user_agent="rettyt 0.0.1 (HackTX 2014)")
     pages = grab_screenful(r, lines-2, sub)
     page = next(pages)
     page_num = 1
@@ -162,4 +163,7 @@ def curses_main(stdscr):
         body.refresh()
 
 def main():
+    global r
+    r = praw.Reddit(user_agent="rettyt 0.0.1 (HackTX 2014)")
+    user.find_config()
     curses.wrapper(curses_main)
