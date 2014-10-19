@@ -331,7 +331,7 @@ def comments_main(stdscr):
             node = node_stack.pop()
             node_left = node.lsibling
             if isMoreComments(node):
-                node_left.setSibling(prompt_load_more(node.value, left_node.parent))
+                node_left.setSibling(prompt_load_more(node.value, node_left.parent))
             if isComment(node):
                 set_current(node)
             return
